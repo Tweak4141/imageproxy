@@ -29,7 +29,7 @@ import (
 const defaultQuality = 95
 
 // maximum distance into image to look for EXIF tags
-const maxExifSize = 1 << 20
+const maxExifSize = 1 << 100
 
 // resample filter used when resizing images
 var resampleFilter = imaging.Lanczos
