@@ -1,16 +1,5 @@
-// Copyright 2013 Google LLC. All rights reserved.
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
+// Copyright 2013 The imageproxy authors.
+// SPDX-License-Identifier: Apache-2.0
 
 // imageproxy starts an HTTP server that proxies requests for remote images.
 package main
@@ -30,7 +19,7 @@ import (
 	"github.com/PaulARoy/azurestoragecache"
 	"github.com/die-net/lrucache"
 	"github.com/die-net/lrucache/twotier"
-	"github.com/garyburd/redigo/redis"
+	"github.com/gomodule/redigo/redis"
 	"github.com/gorilla/mux"
 	"github.com/gregjones/httpcache/diskcache"
 	rediscache "github.com/gregjones/httpcache/redis"
@@ -48,15 +37,18 @@ var allowHosts = flag.String("allowHosts", "", "comma separated list of allowed 
 var denyHosts = flag.String("denyHosts", "", "comma separated list of denied remote hosts")
 var referrers = flag.String("referrers", "", "comma separated list of allowed referring hosts")
 var includeReferer = flag.Bool("includeReferer", false, "include referer header in remote requests")
+var followRedirects = flag.Bool("followRedirects", true, "follow redirects")
 var baseURL = flag.String("baseURL", "", "default base URL for relative remote URLs")
 var cache tieredCache
 var signatureKeys signatureKeyList
 var scaleUp = flag.Bool("scaleUp", false, "allow images to scale beyond their original dimensions")
 var timeout = flag.Duration("timeout", 0, "time limit for requests served by this proxy")
 var verbose = flag.Bool("verbose", false, "print verbose logging messages")
-var version = flag.Bool("version", false, "Deprecated: this flag does nothing")
+var _ = flag.Bool("version", false, "Deprecated: this flag does nothing")
 var contentTypes = flag.String("contentTypes", "image/*", "comma separated list of allowed content types")
 var userAgent = flag.String("userAgent", "willnorris/imageproxy", "specify the user-agent used by imageproxy when fetching images from origin website")
+var overrideCacheControl = flag.String("override-cache-control", "", "manually override the remote website Cache-Control header. for more info see https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Cache-Control")
+var overrideExpires = flag.String("override-expires", "", "manually override the remote website expires header in form of Sat, 28 Dec 2019 04:09:32 GMT")
 
 func init() {
 	flag.Var(&cache, "cache", "location to cache images (see https://github.com/willnorris/imageproxy#cache)")
@@ -67,7 +59,15 @@ func main() {
 	envy.Parse("IMAGEPROXY")
 	flag.Parse()
 
-	p := imageproxy.NewProxy(nil, cache.Cache)
+	overrideOpts := map[string]string{}
+	if *overrideCacheControl != "" {
+		overrideOpts["Cache-Control"] = *overrideCacheControl
+	}
+	if *overrideExpires != "" {
+		overrideOpts["Expires"] = *overrideExpires
+	}
+
+	p := imageproxy.NewProxy(nil, cache.Cache, overrideOpts)
 	if *allowHosts != "" {
 		p.AllowHosts = strings.Split(*allowHosts, ",")
 	}
@@ -90,6 +90,7 @@ func main() {
 	}
 
 	p.IncludeReferer = *includeReferer
+	p.FollowRedirects = *followRedirects
 	p.Timeout = *timeout
 	p.ScaleUp = *scaleUp
 	p.Verbose = *verbose
