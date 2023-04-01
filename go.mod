@@ -21,8 +21,7 @@ require (
 	github.com/prometheus/client_golang v1.11.0
 	github.com/rwcarlsen/goexif v0.0.0-20190401172101-9e8deecbddbd
 	github.com/satori/go.uuid v0.0.0-20180103174451-36e9d2ebbde5 // indirect
-	golang.org/x/crypto v0.0.0-20201221181555-eec23a3978ad // indirect
-	golang.org/x/image v0.0.0-20201208152932-35266b937fa6
+	golang.org/x/image v0.6.0
 	willnorris.com/go/gifresize v1.0.0
 )
 
